@@ -3,20 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebCrudApi.DAL.Entities;
+using WebCrudApi.Helpers;
 using WebCrudApi.ViewModels;
 
 namespace WebCrudApi.Controllers
 {
     [Produces("application/json")]
     [Route("api/user-portal")]
-    [ApiController]
+    //[ApiController]
     public class UsersController : ControllerBase
     {
         private readonly EFContext _context;
-        public UsersController(EFContext context)//ctor
+        private readonly UserManager<DbUser> _userManager;
+        public UsersController(EFContext context,
+            UserManager<DbUser> userManager)//ctor
         {
+            _userManager = userManager;
             _context = context;
         }
         [HttpGet("users")]
@@ -37,14 +42,15 @@ namespace WebCrudApi.Controllers
 
         // POST api/user-portal/users
         [HttpPost("users")]
-        public string Post([FromBody]UserAddViewModel model)
+        public async Task<IActionResult> Post([FromBody]UserAddViewModel model)
         {
             string id = null;
-            if(ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                return id;
+                var errors = CustomValidator.GetErrorsByModel(ModelState);
+                return BadRequest(errors);
             }
-            return id;
+            return Ok("SEMEN");
         }
     }
 }
