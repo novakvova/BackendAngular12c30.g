@@ -18,6 +18,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using WebCrudApi.Helpers;
 
 namespace WebCrudApi
 {
@@ -42,6 +44,8 @@ namespace WebCrudApi
 
             services.AddIdentity<DbUser, IdentityRole>()
                 .AddEntityFrameworkStores<EFContext>();
+
+            services.AddTransient<IEmailSender, EmailSender>();
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("this is the secret phrase"));
 
