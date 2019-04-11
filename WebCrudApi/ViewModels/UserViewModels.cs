@@ -58,5 +58,10 @@ namespace WebCrudApi.ViewModels
         [EmailAddress]
         public string Email { get; set; }
     }
+    public class ConfirmEmailViewModel
+    {
+        [Required(ErrorMessage = "Cant't be empty")]
+        public string Code { get; set; }
+    }
 
 }

@@ -41,9 +41,9 @@ namespace WebCrudApi
                 opt.UseSqlServer(Configuration
                     .GetConnectionString("DefaultConnection")));
 
-
             services.AddIdentity<DbUser, IdentityRole>()
-                .AddEntityFrameworkStores<EFContext>();
+                .AddEntityFrameworkStores<EFContext>()
+                .AddDefaultTokenProviders();
 
             services.AddTransient<IEmailSender, EmailSender>();
 
