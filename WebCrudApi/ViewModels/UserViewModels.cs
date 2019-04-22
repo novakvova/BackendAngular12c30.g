@@ -17,6 +17,15 @@ namespace WebCrudApi.ViewModels
         public int Age { get; set; }
         public bool EmailConfirmed { get; set; }
     }
+
+    public class UserEditViewModel
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public decimal Salary { get; set; }
+        public int Age { get; set; }
+    }
     public class UserAddViewModel
     {
         [Required(ErrorMessage = "Can't be empty")]

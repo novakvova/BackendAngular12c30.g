@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using WebCrudApi.DAL.Entities;
 using WebCrudApi.Helpers;
 using WebCrudApi.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebCrudApi.Controllers
 {
@@ -102,6 +103,63 @@ namespace WebCrudApi.Controllers
                $"Please confirm your email by clicking here: " +
                $"<a href='{callbackUrl}'>link</a>");
             return Ok("SEMEN");
+        }
+
+
+        [HttpGet("users/{userid}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetUserById(string userid)
+        {
+            var user = _context.Users
+                .Include(u => u.UserProfile).SingleOrDefault(u => u.Id == userid); 
+            if (user != null)
+            {
+                return Ok(new UserEditViewModel
+                {
+                    Id=user.Id,
+                    FirstName=user.UserProfile.FirstName,
+                    LastName=user.UserProfile.LastName,
+                    Age=user.UserProfile.Age,
+                    Salary=user.UserProfile.Salary
+                });
+            }
+            return BadRequest(new { invalid = "Problem edit user by DB" });
+        }
+
+        [HttpPut("users/{userid}")]
+        [AllowAnonymous]
+        public IActionResult UpdateUser(string userid, [FromBody]UserEditViewModel model)
+        {
+            var user = _context.Users
+                .Include(u => u.UserProfile).SingleOrDefault(u => u.Id == userid);
+            if (user != null)
+            {
+                user.UserProfile.FirstName = model.FirstName;
+                user.UserProfile.LastName = model.LastName;
+                user.UserProfile.Age = model.Age;
+                user.UserProfile.Salary = model.Salary;
+                _context.SaveChanges();
+                return Ok();
+            }
+            return BadRequest(new { invalid = "Problem edit user by DB" });
+        }
+
+
+        [HttpDelete("users/{userid}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DeleteUser(string userid)
+        {
+            var user = await _userManager.FindByIdAsync(userid);
+            if (user != null)
+            {
+                var result = _userManager.DeleteAsync(user);
+                if (result.Result.Succeeded)
+                {
+                    return Ok();
+                }
+                return BadRequest(new { invalid = "Problem delete user by DB" });
+            }
+            return Ok();
         }
 
         // POST api/user-portal/users/login
