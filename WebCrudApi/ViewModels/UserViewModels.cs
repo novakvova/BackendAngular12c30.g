@@ -15,6 +15,7 @@ namespace WebCrudApi.ViewModels
         public string Email { get; set; }
         public decimal Salary { get; set; }
         public int Age { get; set; }
+        public bool EmailConfirmed { get; set; }
     }
     public class UserAddViewModel
     {
@@ -40,6 +41,17 @@ namespace WebCrudApi.ViewModels
         public int Age { get; set; }
     }
 
+    public class UserLoginViewModel
+    {
+        [Required(ErrorMessage = "Can't be empty")]
+        [EmailAddress(ErrorMessage = "Invalid email")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Can't be empty")]
+        public string Password { get; set; }
+    }
+
+
     public class ChangePasswordViewModel
     {
         [Required]
@@ -51,6 +63,8 @@ namespace WebCrudApi.ViewModels
         [RegularExpression(@"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).{6,24}$", ErrorMessage = "Password must be at least 6 characters and contain digits, upper and lower case")]
         public string NewPassword { get; set; }
     }
+
+
 
     public class ForgotPasswordViewModel
     {

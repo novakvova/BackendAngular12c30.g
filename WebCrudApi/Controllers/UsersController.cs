@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using WebCrudApi.DAL.Entities;
 using WebCrudApi.Helpers;
 using WebCrudApi.ViewModels;
@@ -22,11 +26,13 @@ namespace WebCrudApi.Controllers
     {
         private readonly EFContext _context;
         private readonly UserManager<DbUser> _userManager;
+        private readonly SignInManager<DbUser> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly IEmailSender _emailSender;
 
         public UsersController(EFContext context,
             UserManager<DbUser> userManager,
+            SignInManager<DbUser> signInManager,
             IConfiguration configuration,
             IEmailSender emailSender)//ctor
         {
@@ -34,8 +40,10 @@ namespace WebCrudApi.Controllers
             _context = context;
             _configuration = configuration;
             _emailSender = emailSender;
+            _signInManager = signInManager;
         }
         [HttpGet("users")]
+        [Authorize]
         public List<UserViewModel> Get()
         {
             var model=_context.Users
@@ -46,7 +54,8 @@ namespace WebCrudApi.Controllers
                     FirstName=u.UserProfile.FirstName,
                     LastName=u.UserProfile.LastName,
                     Age=u.UserProfile.Age,
-                    Salary=u.UserProfile.Salary
+                    Salary=u.UserProfile.Salary,
+                    EmailConfirmed = u.EmailConfirmed
                 }).ToList();
             return model;
         }
@@ -93,6 +102,78 @@ namespace WebCrudApi.Controllers
                $"Please confirm your email by clicking here: " +
                $"<a href='{callbackUrl}'>link</a>");
             return Ok("SEMEN");
+        }
+
+        // POST api/user-portal/users/login
+        [HttpPost("users/login")]
+        public async Task<IActionResult> Login([FromBody]UserLoginViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errrors = CustomValidator.GetErrorsByModel(ModelState);
+                return BadRequest(errrors);
+            }
+
+            var result = await _signInManager
+                .PasswordSignInAsync(model.Email, model.Password,
+                false, false);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { invalid = "Не правильно введені дані!" });
+            }
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            await _signInManager.SignInAsync(user, isPersistent: false);
+            return Ok(
+                new
+                {
+                    status = 200,
+                    result = new { token=CreateToken(user) },
+                    message = 1
+                });
+        }
+
+        string CreateToken(DbUser user)
+        {
+            var roles = _userManager.GetRolesAsync(user).Result;
+
+            var claims = new List<Claim>()
+            {
+                //new Claim(JwtRegisteredClaimNames.Sub, user.Id)
+                new Claim("id", user.Id),
+                new Claim("name", user.UserName),
+            };
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim("roles", role));
+            }
+
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("this is the secret phrase"));
+            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+            var jwt = new JwtSecurityToken(signingCredentials: signingCredentials, claims: claims);
+            return new JwtSecurityTokenHandler().WriteToken(jwt);
+        }
+
+        [HttpGet("users/profile")]
+        [Authorize]
+        public UserViewModel GetUserProfile()
+        {
+            var isAuth = User.Identity.IsAuthenticated;
+            var UserId = User.Claims.ToList();
+            var model = new UserViewModel();
+            //var model = _context.Users
+            //    .Select(u => new UserViewModel
+            //    {
+            //        Id = u.Id,
+            //        Email = u.Email,
+            //        FirstName = u.UserProfile.FirstName,
+            //        LastName = u.UserProfile.LastName,
+            //        Age = u.UserProfile.Age,
+            //        Salary = u.UserProfile.Salary,
+            //        EmailConfirmed = u.EmailConfirmed
+            //    }).ToList();
+            return model;
         }
 
         [HttpPut("users/confirmemail/{userid}")]
@@ -143,7 +224,6 @@ namespace WebCrudApi.Controllers
 
             return Ok();
         }
-
 
         [HttpPost("ForgotPassword")]
         [AllowAnonymous]
